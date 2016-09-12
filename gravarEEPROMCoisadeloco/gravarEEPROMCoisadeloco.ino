@@ -1,5 +1,5 @@
 #include <EEPROM.h>
-
+//teste
 #define MEM_ALOC_SIZE 120
 //eh armazenado valores de 0 a 255, mas o perceptron trabalha de -1 a 1 para isso os valores serão multiplicados por 100 e somados por mais cem. tendo assim valores de 0 a 200
 uint8_t mWb = 0; // -0,26*100 + 100
