@@ -1,0 +1,4 @@
+git add . //prepara os arquivos que podem ser realizados o commit ao repositorio
+//passos que devem ser seguidos para atualizar arquivos
+git commit -a // adiciona todos arquivos para serem enviados para o repositorio
+git push // envia ao repositorio todos arquivos que estao no commit
