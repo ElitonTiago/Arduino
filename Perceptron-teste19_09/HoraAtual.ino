@@ -10,7 +10,6 @@ void novaHora(){
   unsigned long millisAtual = (millis()) - millisHora;
   if(millisAtual >= checarHora || millisAtual < 0){
     millisHora = millis();
-    String dayOld = strDia;
     int horaAgora = getTime();
     if(hora != horaAgora){
       if(!alteracaoMemoria){        
@@ -20,11 +19,7 @@ void novaHora(){
       GravaNovosValores();
       alteracaoMemoria = false;
       hora = horaAgora;
-      LeituraInicial();      
-      if(dayOld != strDia){
-        CreateDirectoryDay();
-      }
-      CreateFileHour(String(hora));
+      LeituraInicial();            
     }
   }  
 }
@@ -37,15 +32,18 @@ int getTime() {
     if(loopBreak > 10){
       return hora;
      }
+     delay(1);
   }
   client.print("HEAD / HTTP/1.1\r\n\r\n");
   loopBreak=0;
-  while(!client.available()) {
-     delay(1);
+  while(!client.available()) {     
      loopBreak++;
      if(loopBreak > 50){
+      client.flush();
+      client.stop();
       return hora;
      }
+     delay(1);
   }
   while(client.available()){
     if (client.read() == '\n') {    

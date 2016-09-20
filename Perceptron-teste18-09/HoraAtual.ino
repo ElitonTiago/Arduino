@@ -1,18 +1,30 @@
 //Configuracao Hora
 int timeZone = -3;
 unsigned long millisHora = 0;
-unsigned long checarHora = 60000;// a cada 10 minutos é verificada a hora atual
+unsigned long checarHora = 0;
 String theDate;
-String strDia;
+String strDia = " ";
 String strMinuto;
+
+void initHora(){
+  hora = getTime();
+  CreateDirectoryDay(strDia);
+  CreateFileHour(String(hora));
+}
 
 void novaHora(){  
   unsigned long millisAtual = (millis()) - millisHora;
   if(millisAtual >= checarHora || millisAtual < 0){
     millisHora = millis();
-    String dayOld = strDia;
+    checarHora = 60000;// a cada 1 minuto é verificada a hora atual
+    String dayOld = getDay();
     int horaAgora = getTime();
     if(hora != horaAgora){
+      if(dayOld != strDia){
+        CreateDirectoryDay(strDia);
+        delay(10);
+      }
+      CreateFileHour(String(hora));
       if(!alteracaoMemoria){        
         ajusteHoraParada();
         SaveValues("Nesta hora nao ocorreu interracao");
@@ -20,11 +32,7 @@ void novaHora(){
       GravaNovosValores();
       alteracaoMemoria = false;
       hora = horaAgora;
-      LeituraInicial();      
-      if(dayOld != strDia){
-        CreateDirectoryDay();
-      }
-      CreateFileHour(String(hora));
+      LeituraInicial();            
     }
   }  
 }
@@ -38,14 +46,15 @@ int getTime() {
       return hora;
      }
   }
+  Serial.println("conectado com o google");
   client.print("HEAD / HTTP/1.1\r\n\r\n");
   loopBreak=0;
-  while(!client.available()) {
-     delay(1);
+  while(!client.available()) {     
      loopBreak++;
      if(loopBreak > 50){
       return hora;
      }
+     delay(1);
   }
   while(client.available()){
     if (client.read() == '\n') {    
@@ -76,6 +85,10 @@ int getTime() {
       }
     }
   }
+}
+
+String getHour(){
+  return String(hora);
 }
 
 String getDate(){

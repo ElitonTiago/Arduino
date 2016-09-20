@@ -1,30 +1,28 @@
 //Configuracao Hora
 int timeZone = -3;
 unsigned long millisHora = 0;
-unsigned long checarHora = 60000;// a cada 10 minutos é verificada a hora atual
+unsigned long checarHora = 0;// a cada 10 minutos é verificada a hora atual
 String theDate;
-String strDia;
+String strDia = " ";
 String strMinuto;
+int hora = -1;
 
 void novaHora(){  
   unsigned long millisAtual = (millis()) - millisHora;
   if(millisAtual >= checarHora || millisAtual < 0){
     millisHora = millis();
-    String dayOld = strDia;
+    checarHora = 60000;
+    String dayOld = getDay();
     int horaAgora = getTime();
+    delay(1);
     if(hora != horaAgora){
-      if(!alteracaoMemoria){        
-        ajusteHoraParada();
-        SaveValues("Nesta hora nao ocorreu interracao");
-      }
-      GravaNovosValores();
-      alteracaoMemoria = false;
-      hora = horaAgora;
-      LeituraInicial();      
+      hora = horaAgora;     
       if(dayOld != strDia){
-        CreateDirectoryDay();
+        CreateDirectoryDay(strDia);
+        delay(10);
       }
       CreateFileHour(String(hora));
+      delay(10);
     }
   }  
 }
@@ -76,6 +74,10 @@ int getTime() {
       }
     }
   }
+}
+
+String getHour(){
+  return String(hora);
 }
 
 String getDate(){
