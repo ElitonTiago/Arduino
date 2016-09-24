@@ -44,15 +44,33 @@ void iniciaTFT(){
   //tft.initDisplay();
   tft.fillScreen(BLACK);
   tft.setRotation(3);
-  
+  tft.setTextColor(WHITE);
+  tft.setTextSize(3);
+  configuraHora();
   // Inicio - Texto e botoes
   tft.drawRoundRect(5, 5, 312, 35, 5, WHITE);
   tft.drawRoundRect(255, 5, 62, 35, 5, WHITE);
-  tft.setTextColor(WHITE);
-  tft.setTextSize(3);
+  
   tft.setCursor(15, 15);
   tft.println("Lampada esta");  
       
+}
+
+void configuraHora(){
+  tft.setCursor(15,15);
+  tft.println("Configure a hora");
+  tft.drawRoundRect(5, 5, 310, 40, 5, WHITE);
+  tft.drawRoundRect(135,55,50,30,5,WHITE);//quadrado que tera o triangulo interno
+  tft.fillTriangle(140,80,160,60,180,80,YELLOW);//triangulo superior
+  tft.drawRoundRect(130,90,60,40,5,WHITE);//quadrado onde armazenara o minuto
+  tft.drawRoundRect(135,135,50,30,5,WHITE);//quadrado que tera o triangulo interno
+  tft.fillTriangle(140,140,160,160,180,140,YELLOW);//triangulo inferior
+  tft.setCursor(145,100);
+  if(minuto < 10) tft.print("0");
+  tft.print(minuto);
+  while(1){
+    
+  }
 }
 
 void loopTFT(){

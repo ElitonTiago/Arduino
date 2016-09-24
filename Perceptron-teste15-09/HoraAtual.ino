@@ -43,10 +43,13 @@ int getTime() {
   while(!client.available()) {
      delay(1);
      loopBreak++;
-     if(loopBreak > 50){
+     if(loopBreak > 40){
+      client.flush();
+      client.stop();
       return hora;
      }
   }
+  loopBreak=0;
   while(client.available()){
     if (client.read() == '\n') {    
       if (client.read() == 'D') {    
@@ -58,6 +61,7 @@ int getTime() {
                 theDate = client.readStringUntil('\r');
                 Serial.print("Data ");
                 Serial.println(theDate);
+                client.flush();
                 client.stop();
                 String strDiaSemana = theDate.substring(0,3);
                 strDia = theDate.substring(5,7);
@@ -75,6 +79,12 @@ int getTime() {
         }
       }
     }
+    loopBreak++;
+     if(loopBreak > 40){
+      client.flush();
+      client.stop();
+      return hora;
+     }
   }
 }
 

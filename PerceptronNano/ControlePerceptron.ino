@@ -1,76 +1,87 @@
 //variaveis perceptron
 bool bias = 1;
-float Wb = -0.2;
-float Wm = 0.7;
-float Wl = -0.4;
 float aprendizagem = 0.01;
-float valorLuzDesejada = 0.68;
 bool p1 = false; //valor do perceptron para ligar a lampada
-bool p2 = false; //valor do perceptron para controle da luminosidade
-
-bool realizaPerceptron = false;
-long tempoPerceptron = 10000000;//tempo em que é realizado o perceptron
 int contDesliga = 0; 
-int tempoDesliga = 60;//valor em que o contador tem que chegar para assim desligar a lampada, multiplicado pelo tempoPercetron ocorre o tempo que fica ligado
-
-void pCallback(){
-    realizaPerceptron = true;
-}
-
-void criaTimerParaPerceptron(){
-  Timer1.initialize(tempoPerceptron);
-  Timer1.attachInterrupt(pCallback);
-}
+unsigned long millisPerceptron = 0;
 
 void chamaPerceptron(){
-  if(realizaPerceptron){
-    realizaPerceptron = false;
+  unsigned long millisAtual = (millis()) - millisPerceptron;
+  if(millisAtual < 0) millisPerceptron = 0;
+  if(millisAtual >= tempoPerceptron && !alteracaoUsuario){
+    if(verificaLampada()){
+      Serial.println("nao iniciou");
+      SaveValues("Usuario alterou estado da lampada pelo interruptor");
+      return; //ter certeza que nao foi alterado o estado da lampada antes do perceptron
+    }
+    millisPerceptron = millis();
+    tempoPerceptron = TIME_EXEC;//sempre que executado o perceptron volta a executar a cada 2 segundos
+    luminosidade = getLuminosidade();
+    movimento = getMovimento();
     p1 = perceptron(luminosidade, movimento);
     int saida = verificaErro(p1, luminosidade, movimento);
     if(saida != -1){
       if(saida == 1){
         contDesliga = 0; //Sempre que a saida for ligar zera o contador
-        ligaLampada();
+        if(ligaLampada()){
+          SaveValues("Perceptron liga lampada");
+        }
       }else{
         if(contDesliga <= (2*tempoDesliga)){
           contDesliga++;// somente quando contador chegar ao valor do tempo eh que a saida ira desligar
         }
         if(contDesliga >= tempoDesliga){          
-          desligaLampada();
+          if(desligaLampada()){
+            SaveValues("Perceptron desliga lampada");
+            tempoPerceptron = 5*TIME_EXEC;//se desligou aguarda cinco vezes o tempo normal para voltar a executar e religar a lampada
+          }
         }
       }
     }
   }
   if(alteracaoUsuario){//caso o usuario altere antes do perceptron eh realizado verificacao e correcao dos valores
-    alteracaoUsuario = false;
-    p1 = perceptron(luminosidade, movimento);//perceptron automatizado
-    p2 = perceptron(luminosidade, digitalRead(statusLampada));//o mesmo perceptron so considerando o ato do usuario em vez do sensor de movimento
-    if(p2 != digitalRead(statusLampada)){//verifica se a lampada possui o mesmo status do perceptron se nao deve ser corrigido o erro
-      if(p1 == p2){// se os dois perceptrons forem verdadeiros sao corrigidos os valores de controle do perceptron
-        verificaErro(p1, luminosidade, movimento);
-      }else{// se forem diferentes eh alterado o valor da iluminacao desejada
-        int erroLuz = ((int) p2) - ((int) digitalRead(statusLampada));
-        perceptronLuzDesejada(luminosidade,erroLuz);
-      }
+    alteracaoUsuario = false;    
+    millisPerceptron = millis();//resetar o tempo do perceptron
+    bool lampadaLigada = leLampada();
+    if(lampadaLigada)
+      tempoPerceptron = TIME_DELAY - (TIME_EXEC*tempoDesliga);
+    else
+      tempoPerceptron = TIME_DELAY;
+    luminosidade = getLuminosidade();
+    movimento = getMovimento();
+    p1 = perceptron(luminosidade, lampadaLigada);
+    //verifica se a lampada possui o mesmo status do perceptron se nao deve ser corrigido o erro
+    if(p1 != lampadaLigada){
+      int erroLuz = ((int) p1) - ((int) lampadaLigada);
+      perceptronLuzDesejada(luminosidade,erroLuz);
+      SaveValues("atualizou Luz Desejada");
+      GravaNovosValores();      
     }
-    if(!digitalRead(statusLampada)){//se o usuario desligou a lampada
-      if(contDesliga < tempoDesliga){//considera que deveria ter desligado e diminui o tempoDesliga
-        float corTempo = 100/contDesliga;//quanto mais rapido o usuario desligar mais vai influenciar no novo numero
-        tempoDesliga = tempoDesliga + (1*aprendizagem*corTempo);
+    if(lampadaLigada){//se o usuario desligou a lampada
+      if(contDesliga < tempoDesliga && tempoDesliga >= 5){//considera que deveria ter desligado e diminui o tempoDesliga
+        int corTempo = tempoDesliga - contDesliga;//quanto mais rapido o usuario desligar mais vai influenciar no novo numero
+        tempoDesliga = tempoDesliga + (-1*(aprendizagem*100)*corTempo)/100;
+        SaveValues("reduziu Tempo Desliga");
+        GravaNovosValores();
+      }else if(tempoDesliga < 5){
+        tempoDesliga = 5;
       }
     }else{// se o usuario ligou a lampada
-      if(contDesliga > tempoDesliga && contDesliga < (2*tempoDesliga)){//considera que desligou rapido demais e aumenta o tempoDesliga
-        float corTempo = 1000/contDesliga;//quanto mais rapido o usuario religar mais vai influenciar no novo numero
-        tempoDesliga = tempoDesliga + (1*aprendizagem*corTempo);//usuado a mesma conta de ajuste de valor do perceptron (erro*aprendizagem*valorlido)
+      if(contDesliga > tempoDesliga && contDesliga < (2*tempoDesliga) && tempoDesliga < 100){//considera que desligou rapido demais e aumenta o tempoDesliga
+        int corTempo = contDesliga - tempoDesliga;//quanto mais rapido o usuario religar mais vai influenciar no novo numero
+        tempoDesliga = tempoDesliga + (1*(aprendizagem*100)*corTempo)/100;//usuado a mesma conta de ajuste de valor do perceptron (erro*aprendizagem*valorlido)
+        SaveValues("Aumentou Tempo Desliga");
+        GravaNovosValores();
+      }else if(tempoDesliga >= 100){
+        tempoDesliga = 100;
       }
     }
   }
 }
 
+//função principal do sistema, onde é realizado o perceptron
 bool perceptron(float mediaLuminosidade, bool valorSensorMov){
   float somatoria = (bias * Wb) + (mediaLuminosidade * Wl) + (valorSensorMov * Wm);
-  Serial.print("somatoria : ");
-  Serial.println(somatoria);
   if(somatoria > 0){
     return 1;
   }else{
@@ -78,32 +89,38 @@ bool perceptron(float mediaLuminosidade, bool valorSensorMov){
   }
 }
 
+//função para ajustes das variaveis nas horas que a lampada não é atuada
+void ajusteHoraParada(){
+  //ajuste para mais proximo do que foi lido na ultima hora
+  if(valorLuzDesejada > luminosidade && valorLuzDesejada < 0,9){
+    perceptronLuzDesejada(valorLuzDesejada-luminosidade, -1);
+  }else if(valorLuzDesejada < luminosidade && valorLuzDesejada > 0,05){
+    perceptronLuzDesejada(luminosidade-valorLuzDesejada, 1);
+  }
+  //ajuste de reducao do tempo ligado, pois nao foi ligado nesta hora
+  if(tempoDesliga > 5){
+    tempoDesliga = tempoDesliga + (-1*(aprendizagem*100)*tempoDesliga)/100;
+  }
+}
+
+//Altera o valor de luz desejada utilizando a mesma formula de correção de erro do perceptron
 bool perceptronLuzDesejada(float mediaLuminosidade, int erroLuz){
-  valorLuzDesejada = valorLuzDesejada + (erroLuz * aprendizagem * mediaLuminosidade);//utilizado a mesma regra de aprendizagem 
+  valorLuzDesejada = valorLuzDesejada + (erroLuz * (aprendizagem*100) * mediaLuminosidade)/100;
 }
 
+//função de correção de erro do perceptron
 void correcaoErro(int erro, float mediaLuminosidade, bool valorSensorMov){
-  Serial.print("Wb velho : ");
-  Serial.println(Wb);
   Wb = Wb + (erro * aprendizagem * bias);
-  Serial.print("Wb novo : ");
-  Serial.println(Wb);
-  Serial.print("Wl velho : ");
-  Serial.println(Wl);
   Wl = Wl + (erro * aprendizagem * mediaLuminosidade);
-  Serial.print("Wl novo : ");
-  Serial.println(Wl);
-  Serial.print("Wm velho : ");
-  Serial.println(Wm);
   Wm = Wm + (erro * aprendizagem * valorSensorMov);
-  Serial.print("Wm novo : ");
-  Serial.println(Wm);
+  SaveValues("Perceptron realizou correcao de erro");
+  GravaNovosValores();
 }
 
+//função de verificação de erro do perceptron
 int verificaErro(bool saida, float mediaLuminosidade, bool valorSensorMov){
+  // condicional que define o que o perceptron deve fazer
   if(mediaLuminosidade < valorLuzDesejada && valorSensorMov == 1){
-    Serial.print("Ligado ? : ");
-    Serial.println(saida);
     //Aqui eu espero que tenha 1 se não tiver, então 1 - 0 = 1
     if(!saida){
       correcaoErro(1, mediaLuminosidade, valorSensorMov);
@@ -112,8 +129,6 @@ int verificaErro(bool saida, float mediaLuminosidade, bool valorSensorMov){
       return 1;
     }
   }else{
-    Serial.print("Desligado ? : ");
-    Serial.println(saida);
     //Aqui eu espero que tenha 0 se não tiver, então 0 - 1 = -1
     if(saida){
       correcaoErro(-1, mediaLuminosidade, valorSensorMov);

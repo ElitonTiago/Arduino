@@ -1,6 +1,7 @@
 #include <Wire.h>
 
 void setup() {
+  Serial.begin(115200);
   Wire.begin(8);                // join i2c bus with address #8
   Wire.onRequest(requestEvent); // register event
 }

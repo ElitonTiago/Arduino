@@ -1,8 +1,10 @@
 //Configuracao sensores
 int pinoSensorMov = 22;
 Thread threadSensores;
+
 void configuraSensores(){
   pinMode(pinoSensorMov, INPUT);
+  analogReference(INTERNAL1V1);
   threadSensores.setInterval(2000);
   threadSensores.onRun(loopSensores);
   cpu.add(&threadSensores);

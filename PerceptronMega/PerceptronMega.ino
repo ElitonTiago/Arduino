@@ -12,6 +12,10 @@ uint8_t lampada = 24;
 uint8_t statusLampada = 26;
 bool alteracaoUsuario = false;
 
+int hora = 12;
+int minuto = 0;
+int segundo = 0;
+
 void setup() {
   configuraSensores();
   pinMode(statusLampada,INPUT);

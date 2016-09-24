@@ -19,6 +19,8 @@ void conexaoServidor(){
     delay(1);
     loopBreak++;
     if(loopBreak > 10){
+       client.flush();
+       client.stop();
        return;
     }    
   }
